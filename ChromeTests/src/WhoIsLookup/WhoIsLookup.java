@@ -29,7 +29,8 @@ public class WhoIsLookup {
     }
 
     public static void exportToCSV(String domain, String whoisData) {
-        String filename = domain.replaceAll("[^a-zA-Z0-9.-]", "_") + "_whois.csv";
+        String filename = "whois_master.csv";
+        boolean fileExists = new File(filename).exists();
 
         try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
             writer.println("Domain,WHOIS Info");
