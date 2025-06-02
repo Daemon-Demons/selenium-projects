@@ -18,7 +18,7 @@ public class WhoIsLookup {
             String line;
 
             while ((line = in.readLine()) != null) {
-                result.append(line).append("\n");
+                result.append(line.replaceAll(",", " ")).append("\n");  // Avoid breaking CSV format
             }
 
         } catch (IOException e) {
@@ -26,6 +26,20 @@ public class WhoIsLookup {
         }
 
         return result.toString();
+    }
+
+    public static void exportToCSV(String domain, String whoisData) {
+        String filename = domain.replaceAll("[^a-zA-Z0-9.-]", "_") + "_whois.csv";
+
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
+            writer.println("Domain,WHOIS Info");
+            for (String line : whoisData.split("\n")) {
+                writer.printf("\"%s\",\"%s\"%n", domain, line);
+            }
+            System.out.println("\nWHOIS data exported to: " + filename);
+        } catch (IOException e) {
+            System.out.println("Error writing to CSV: " + e.getMessage());
+        }
     }
 
     public static void main(String[] args) {
@@ -42,6 +56,7 @@ public class WhoIsLookup {
         String whoisInfo = getWhois(domain);
         System.out.println("\nWHOIS Data:\n");
         System.out.println(whoisInfo);
+
+        exportToCSV(domain, whoisInfo);
     }
 }
-
