@@ -17,6 +17,7 @@ Import the project to your IDE and ensure to have a symbolic link of the librari
    In PowerShell, change to the root directory of the cloned repository (the location where the `ExternalLibraries` folder is stored):
    
    ```bash
+   del ExternalLibs
    mklink /D "ExternalLibs" "..\ExternalLibraries"
 
 3. **Verify Links**:
