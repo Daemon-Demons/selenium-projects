@@ -10,17 +10,6 @@ A curated collection of Java + Selenium WebDriver automation scripts demon
 
 ---
 
-## ✨ Features
-
-| Category          | Highlights                                                |
-|-------------------|-----------------------------------------------------------|
-| Test Automation   | Page‑object pattern, waits, parameterised test data       |
-| Web Interaction   | Form submission, dynamic element handling, file download |
-| Reporting         | OpenPDF‑powered summary reports with screenshots          |
-| CI‑ready          | Headless execution support (Chrome)                       |
-
----
-
 ## 🔧 Technologies Used
 
 - *Java SDK/JRE 11+*  
@@ -48,4 +37,8 @@ A curated collection of Java + Selenium WebDriver automation scripts demon
 ```bash
 git clone https://github.com/Daemon-Demons/selenium-projects.git
 cd selenium-projects
-mvn clean compile
+```
+
+### 3. Run Tests
+
+Open the project in an IDE (e.g., Eclipse, VSCode, IntelliJ), right-click the test file → Run.
