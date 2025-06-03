@@ -1,63 +1,114 @@
 package WhoIsLookup;
 
 import java.io.*;
-import java.net.*;
-import java.util.Scanner;
+import java.util.*;
+import java.net.Socket;
 
 public class WhoIsLookup {
 
-    public static String getWhois(String domainName) {
-        StringBuilder result = new StringBuilder();
+    private static final String CSV_FILE = "whois_lookup_master.csv";
 
-        try (Socket socket = new Socket("whois.verisign-grs.com", 43)) {
-            OutputStream out = socket.getOutputStream();
-            out.write((domainName + "\r\n").getBytes());
-            out.flush();
+    // Define the WHOIS fields to extract and export as columns
+    private static final List<String> TARGET_FIELDS = Arrays.asList(
+        "Domain Name",
+        "Registry Domain ID",
+        "Registrar WHOIS Server",
+        "Registrar URL",
+        "Updated Date",
+        "Creation Date",
+        "Registry Expiry Date",
+        "Registrar",
+        "Registrar Abuse Contact Email",
+        "Registrar Abuse Contact Phone"
+    );
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    public static String whoisQuery(String server, String domain) {
+        StringBuilder response = new StringBuilder();
+        try (Socket socket = new Socket(server, 43)) {
+            socket.getOutputStream().write((domain + "\r\n").getBytes());
+            socket.getOutputStream().flush();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             String line;
-
-            while ((line = in.readLine()) != null) {
-                result.append(line.replaceAll(",", " ")).append("\n");  // Avoid breaking CSV format
+            while ((line = reader.readLine()) != null) {
+                response.append(line).append("\n");
             }
-
         } catch (IOException e) {
-            return "Error: " + e.getMessage();
+            System.out.println("Error querying " + server + ": " + e.getMessage());
         }
-
-        return result.toString();
+        return response.toString();
     }
 
-    public static void exportToCSV(String domain, String whoisData) {
-        String filename = "whois_master.csv";
-        boolean fileExists = new File(filename).exists();
+    public static Map<String, String> parseWhois(String raw, String domain) {
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("Domain", domain);  // Always include the domain name
 
-        try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
-            writer.println("Domain,WHOIS Info");
-            for (String line : whoisData.split("\n")) {
-                writer.printf("\"%s\",\"%s\"%n", domain, line);
+        // Initialize all fields with empty strings
+        for (String field : TARGET_FIELDS) {
+            values.put(field, "");
+        }
+
+        for (String line : raw.split("\n")) {
+            line = line.trim();  // Trim spaces
+
+            for (String field : TARGET_FIELDS) {
+                String prefix = field + ":";
+                if (line.toLowerCase().startsWith(prefix.toLowerCase())) {
+                    String value = line.substring(prefix.length()).trim();
+                    values.put(field, value);
+                }
             }
-            System.out.println("\nWHOIS data exported to: " + filename);
+        }
+
+        return values;
+    }
+
+
+    public static void appendToCsv(Map<String, String> rowData) {
+        boolean fileExists = new File(CSV_FILE).exists();
+        try (PrintWriter writer = new PrintWriter(new FileWriter(CSV_FILE, true))) {
+            if (!fileExists) {
+                // Write header
+                writer.println(String.join(",", rowData.keySet()));
+            }
+
+            // Write data
+            for (String value : rowData.values()) {
+                writer.print("\"" + value.replace("\"", "'") + "\",");
+            }
+            writer.println();
+            System.out.println("Appended data to " + CSV_FILE);
         } catch (IOException e) {
-            System.out.println("Error writing to CSV: " + e.getMessage());
+            System.out.println("Error writing csv: " + e.getMessage());
         }
     }
 
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        System.out.print("Enter a domain name (e.g., example.com): ");
-        String domain = scanner.nextLine().trim();
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter a domain name: ");
+        String domain = sc.nextLine().trim();
 
-        if (domain.isEmpty()) {
-            System.out.println("No domain entered. Exiting.");
-            return;
+        // Step 1: Primary WHOIS query
+        String primary = whoisQuery("whois.verisign-grs.com", domain);
+
+        // Step 2: Check if a Registrar WHOIS Server is specified
+        String registrarWhois = null;
+        for (String line : primary.split("\n")) {
+            if (line.startsWith("Registrar WHOIS Server:")) {
+                registrarWhois = line.split(":", 2)[1].trim();
+                break;
+            }
         }
 
-        System.out.println("\nLooking up WHOIS information for: " + domain);
-        String whoisInfo = getWhois(domain);
-        System.out.println("\nWHOIS Data:\n");
-        System.out.println(whoisInfo);
+        // Step 3: Perform final query to registrar (if available)
+        String finalResponse = primary;
+        if (registrarWhois != null && !registrarWhois.isEmpty()) {
+            System.out.println("Found Registrar WHOIS Server: " + registrarWhois);
+            finalResponse = whoisQuery(registrarWhois, domain);
+        }
 
-        exportToCSV(domain, whoisInfo);
+        // Step 4: Parse and export
+        Map<String, String> data = parseWhois(finalResponse, domain);
+        data.forEach((k, v) -> System.out.println(k + ": " + v));
+        appendToCsv(data);
     }
 }
