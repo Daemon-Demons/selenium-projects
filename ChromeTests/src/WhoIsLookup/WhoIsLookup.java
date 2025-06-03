@@ -6,7 +6,7 @@ import java.net.Socket;
 
 public class WhoIsLookup {
 
-    private static final String CSV_FILE = "whois_lookup_master.csv";
+    private static final String CSV_FILE = "reports/whois_lookup_master.csv";
 
     // Define the WHOIS fields to extract and export as columns
     private static final List<String> TARGET_FIELDS = Arrays.asList(
